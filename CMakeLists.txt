@@ -3,4 +3,5 @@ project(DAWG)
 
 set(CMAKE_CXX_STANDARD 23)
 
-add_executable(DAWG Dawg.cpp)
+add_executable(DAWG Dawg.cpp
+        Dawg2.cpp)

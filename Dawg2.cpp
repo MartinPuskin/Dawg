@@ -1,4 +1,6 @@
-//See töötab ÕÄÖÜŠŽ-ga, aga inplementatsioon on keeruline.
+//
+// Created by Martin on 06.05.2024.
+//
 
 #include <iostream>
 #include <fstream>
@@ -22,12 +24,10 @@ private:
 
     static int misLaps(int tipp);
 
-    static bool samaTaht(wchar_t taht1, wchar_t taht2);
-
 public:
     Dawg(string failiNimi) : m_dawg(readIntegers(failiNimi)) {}
 
-    bool kasSona(vector<int> dawg, int algus, wchar_t *sona);
+    bool kasSona(string sona, int algus);
 };
 
 vector<int> Dawg::readIntegers(const string &failiNimi) {
@@ -67,53 +67,51 @@ int Dawg::misLaps(int tipp) {
     return (tipp & 268435200) >> 8;
 }
 
-bool Dawg::samaTaht(wchar_t taht1, wchar_t taht2) {
-    int arv1 = static_cast<int>(taht1);
-    int arv2 = static_cast<int>(taht2);
-
-    if (arv1 > 1000) {
-        arv1 -= 65536;
-    }
-    if (arv2 > 1000) {
-        arv2 -= 65536;
+string capitalizeAndReplace(string str) {
+    // Capitalize the string
+    for (char &c : str) {
+        c = std::toupper(c);
     }
 
-    //tavalised tähed
-    if (0 < arv1 && arv1 < 256 && 0 < arv2 && arv2 < 256) {
-        return arv1 == arv2;
+    // Replace '&' with '$'
+    size_t pos = 0;
+    while ((pos = str.find('&', pos)) != std::string::npos) {
+        str.replace(pos, 1, "$");
+        pos += 1; // Move past the replaced character
     }
-    //täpitähed
-    if (arv1 < 256 && arv2 < 256) {
-        return (arv1 - arv2) % 256 == 0;
-    }
-    //š ja ž
-    if (arv1 < 0 && arv2 > 256 || arv1 > 256 && arv2 < 0) {
-        return (arv1 + arv2 == 284 || arv1 + arv2 == 251);
-    }
-    return false;
+    return str;
 }
 
-// õäöüšž = 012345
+// ÕÄÖÜŠŽ = QXCY$W
+// väike š on &
 // Kontrollib, kas käidud sõna on korrektne sõna.
 // dawg on graaf, algus on rekursiooni jaoks esimene indeks, esimest korda panna
 // selle väärtuseks 2, sona on otsitav sõna
-bool Dawg::kasSona(vector<int> dawg, int algus, wchar_t sona[]) {
-    for (int i{algus}; i < dawg.size(); i++) {
-        if (wcslen(sona) > 1 && samaTaht(sona[0], misTaht(dawg[i])) && kasSona(dawg, misLaps(dawg[i]) + 1, &sona[1])) {
+bool Dawg::kasSona(string sona, int algus = 2) {
+    sona = capitalizeAndReplace(sona);
+    for (int i{algus}; i < m_dawg.size(); i++) {
+        if (sona.length() > 1 && sona[0] == misTaht(m_dawg[i]) && kasSona(sona.substr(1), misLaps(m_dawg[i]) + 1)) {
             return true;
         }
-        if (wcslen(sona) == 1 && samaTaht(sona[0], misTaht(dawg[i])) && kasSonaLopp(dawg[i])) {
+        if (sona.length() == 1 && sona[0] == misTaht(m_dawg[i]) && kasSonaLopp(m_dawg[i])) {
             return true;
         }
-        return !kasLasteLopp(dawg[i]);
+        if (kasLasteLopp(m_dawg[i]))
+            return false;
     }
     cerr << "Ei leidnud sõnaraamatut.";
     return false;
 }
 
-/*
+// ÕÄÖÜŠŽ = QXCY$W
 int main(){
-
+    Dawg dog{"../DAWG/cmake-build-debug/SonaList.dat"};
+    vector<string> test{"$ahh", "šahhi", "CXK"};
+    for (string str : test){
+        if (dog.kasSona(str))
+            cout << str << " on sõna.\n";
+        else
+            cout << str << " ei ole sõna.\n";
+    }
     return 0;
 }
-*/
